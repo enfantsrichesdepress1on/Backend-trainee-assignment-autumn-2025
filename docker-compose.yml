@@ -1,0 +1,55 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pr-postgres
+    environment:
+      POSTGRES_DB: pr_service
+      POSTGRES_USER: pr_user
+      POSTGRES_PASSWORD: pr_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pr_user -d pr_service"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate:v4.16.2
+    container_name: pr-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path=/migrations",
+        "-database=postgres://pr_user:pr_password@postgres:5432/pr_service?sslmode=disable",
+        "up"
+      ]
+    restart: "on-failure"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pr-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://pr_user:pr_password@postgres:5432/pr_service?sslmode=disable
+      HTTP_ADDR: ":8080"
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+volumes:
+  postgres_data:

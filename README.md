@@ -1,4 +1,4 @@
-# PR Reviewer Assignment Service :eagle: :eagle: :eagle:
+# PR Reviewer Assignment Service 
 
 Сервис для автоматического назначения ревьюверов на Pull Request’ы внутри команды.
 
